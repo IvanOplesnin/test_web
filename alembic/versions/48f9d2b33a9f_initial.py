@@ -10,7 +10,7 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-from app.utils import hash_password
+from utils import hash_password
 
 # revision identifiers, used by Alembic.
 revision: str = '48f9d2b33a9f'

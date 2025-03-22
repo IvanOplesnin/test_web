@@ -1,10 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from app.models import Account
-from app.schemas.account import AccountCreate
-from app.utils import hash_password
+from models import Account
+from schemas import AccountCreate
 
 
 async def create_account(*, account: AccountCreate, session: AsyncSession) -> Account:

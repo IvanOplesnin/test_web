@@ -2,6 +2,13 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, EmailStr
 
+from schemas.account import AccountRead
+
+
+class AuthRead(BaseModel):
+    email: str = Field(...)
+    password: str = Field(...)
+
 
 class UserBase(BaseModel):
     fullname: str = Field(..., min_length=4)
@@ -25,3 +32,7 @@ class UserRead(UserBase):
 
     class Config:
         from_attributes = True
+
+
+class UserReadWithAccounts(UserRead):
+    accounts: list[AccountRead] = Field(default=[])

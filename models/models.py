@@ -2,7 +2,7 @@ import asyncio
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from app.db import engine
+from db import engine
 
 
 class Base(DeclarativeBase):
