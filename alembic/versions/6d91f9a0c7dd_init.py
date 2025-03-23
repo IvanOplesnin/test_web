@@ -1,8 +1,8 @@
-"""Initial
+"""init
 
-Revision ID: 48f9d2b33a9f
+Revision ID: 6d91f9a0c7dd
 Revises: 
-Create Date: 2025-03-21 13:18:34.942639
+Create Date: 2025-03-23 23:46:28.981730
 
 """
 from typing import Sequence, Union
@@ -10,10 +10,10 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-from utils import hash_password
+from utils import hash_string
 
 # revision identifiers, used by Alembic.
-revision: str = '48f9d2b33a9f'
+revision: str = '6d91f9a0c7dd'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -35,7 +35,7 @@ def upgrade() -> None:
                     sa.Column('id', sa.Integer(), nullable=False),
                     sa.Column('user_id', sa.Integer(), nullable=False),
                     sa.Column('balance', sa.Float(), nullable=False),
-                    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+                    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
                     sa.PrimaryKeyConstraint('id')
                     )
     op.create_table('transactions',
@@ -44,12 +44,11 @@ def upgrade() -> None:
                     sa.Column('user_id', sa.Integer(), nullable=False),
                     sa.Column('account_id', sa.Integer(), nullable=False),
                     sa.Column('amount', sa.Float(), nullable=False),
-                    sa.ForeignKeyConstraint(['account_id'], ['accounts.id'], ),
+                    sa.ForeignKeyConstraint(['account_id'], ['accounts.id'], ondelete='CASCADE'),
                     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
                     sa.PrimaryKeyConstraint('id'),
                     sa.UniqueConstraint('transaction_id')
-                    ),
-
+                    )
     user_table = sa.table(
         'users',
         sa.column('fullname', sa.String()),
@@ -59,16 +58,16 @@ def upgrade() -> None:
     )
     op.bulk_insert(user_table, [
         {
-            'fullname': 'Test_Admin',
-            'email': 'admin@example.com',
-            'hash_password': hash_password('qwerty'),
-            'is_admin': True
-        },
-        {
             'fullname': 'Test_User',
             'email': 'user1@example.com',
-            'hash_password': hash_password('123456'),
+            'hash_password': hash_string('123456'),
             'is_admin': False
+        },
+        {
+            'fullname': 'Test_Admin',
+            'email': 'admin@example.com',
+            'hash_password': hash_string('qwerty'),
+            'is_admin': True
         }
     ])
 
@@ -79,8 +78,8 @@ def upgrade() -> None:
     )
     op.bulk_insert(account, [
         {
-            'user_id': 2,
-            'balance': 2000.00
+            'user_id': 1,
+            'balance': 0.0
         }
     ])
     # ### end Alembic commands ###

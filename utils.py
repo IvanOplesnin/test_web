@@ -1,19 +1,18 @@
 import datetime
 import hashlib
 import os
-import time
 
 import jwt
 
 from models import User
 
 
-def hash_password(password):
-    return hashlib.sha256(bytes(password, 'utf-8')).hexdigest()
+def hash_string(string):
+    return hashlib.sha256(string.encode("utf-8")).hexdigest()
 
 
 def equal_hash(hash_1: str, hash_2: str):
-    return hash_password(hash_1) == hash_password(hash_2)
+    return hash_string(hash_1) == hash_string(hash_2)
 
 
 def create_access_token(user: User):
@@ -49,13 +48,17 @@ def decode_access_token(token):
 
 
 if __name__ == '__main__':
-    from dotenv import load_dotenv
+    import dotenv
 
-    load_dotenv()
-    token = create_access_token(User(id=1, is_admin=True, email="test@test.com", hash_password='1231', fullname='test'))
-    print(token)
-    decode = decode_access_token(token)
-    print(decode)
-    time.sleep(31)
-    decode = decode_access_token(token)
-    print(decode)
+    dotenv.load_dotenv()
+    key = os.getenv("PAYMENT_KEY")
+    string = f"{2}{1000}{"kldhashgdfaklaklj231321shd"}{3}{key}"
+    hash_string = hash_string(string)
+    dict_t = {
+        "transaction_id": "kldhashgdfaklaklj231321shd",
+        "user_id": 3,
+        "account_id": 2,
+        "amount": 1000,
+        "signature": hash_string
+    }
+    print(dict_t)
