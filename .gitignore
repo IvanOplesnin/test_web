@@ -3,7 +3,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+frontend_test_web/.vscode
 # C extensions
 *.so
 

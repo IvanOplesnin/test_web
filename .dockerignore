@@ -1,0 +1,6 @@
+/.venv
+/.idea
+/__pycache__
+/frontend_test_web
+/postgres_settings
+.env

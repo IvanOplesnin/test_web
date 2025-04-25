@@ -1,0 +1,31 @@
+services:
+    backend:
+      image: ivanya0956/fastapi_backend
+      working_dir: /FastApi_Backend
+      ports:
+        - "8000:8000"
+      environment:
+        - PG_LINK=postgresql+asyncpg://postgres:password@database:5432/TestWeb
+        - SECRET_KEY=123455
+        - PAYMENT_KEY=PAYMENT_KEY
+      depends_on:
+        - database
+
+    database:
+      image: postgres:13.2-alpine
+      working_dir: /database
+      ports:
+        - "5433:5432"
+      environment:
+        - POSTGRES_PASSWORD=password
+        - POSTGRES_DB=TestWeb
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+
+    frontend:
+      image: ivanya0956/frontend_for_fastapi:latest
+      ports:
+        - "3000:3000"
+
+volumes:
+  postgres_data:
