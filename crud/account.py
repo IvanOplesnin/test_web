@@ -6,11 +6,13 @@ from schemas import AccountCreate, TransactionResponse
 
 
 async def create_account(*, account: AccountCreate, session: AsyncSession) -> Account:
-    acc = await get_account_by_id(account.user_id, session)
+    acc = await get_account_by_id(account.id, session)
     if acc is not None:
         raise ValueError('This account already exists')
 
-    new_account = Account(**account.model_dump())
+    acc_dict = account.model_dump()
+    acc_dict.pop('id')
+    new_account = Account(**acc_dict)
     session.add(new_account)
 
     await session.commit()
@@ -22,7 +24,9 @@ async def create_account(*, account: AccountCreate, session: AsyncSession) -> Ac
 async def update_balance(transaction: TransactionResponse, session: AsyncSession) -> Account:
     acc = await get_account_by_id(transaction.account_id, session)
     new_balance = acc.balance + transaction.amount
-    stmt = update(Account).where(Account.id == transaction.account_id).values(balance=new_balance).returning(Account)
+    stmt = (update(Account).where(Account.id == transaction.account_id).
+            values(balance=new_balance).
+            returning(Account))
 
     account = await session.execute(stmt)
     await session.commit()

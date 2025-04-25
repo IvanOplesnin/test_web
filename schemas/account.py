@@ -1,8 +1,10 @@
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
 class AccountBase(BaseModel):
-    id: int = Field(..., alias="account_id")
+    id: Optional[int] = Field(None, alias="account_id")
     user_id: int = Field(...)
     balance: float = 0.0
 

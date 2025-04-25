@@ -52,7 +52,7 @@ async def user_update(*, user_id: int, user: UserUpdate, session: AsyncSession) 
     new_user = await session.execute(stmt)
     await session.commit()
 
-    return new_user
+    return new_user.scalar_one_or_none()
 
 
 async def user_delete(*, user_id: int, session: AsyncSession) -> User:
