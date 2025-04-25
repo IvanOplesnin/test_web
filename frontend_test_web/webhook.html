@@ -1,0 +1,248 @@
+<!-- payment.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Эмулятор платежа</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .payment-card {
+            max-width: 500px;
+            margin: 2rem auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="loading-overlay" id="globalLoader">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
+    </div>
+
+    <div class="container">
+        <div class="card payment-card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Тестовый платеж</h4>
+            </div>
+            <div class="card-body">
+                <form id="paymentForm">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Сумма платежа</label>
+                        <input type="number" step="0.01" class="form-control" id="amount" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <span id="submitText">Отправить платеж</span>
+                        <div id="spinner" class="spinner-border spinner-border-sm d-none"></div>
+                    </button>
+                </form>
+                <div id="paymentResult" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Конфигурация
+        const API_BASE_URL = 'http://localhost:8000';
+        const PAYMENT_KEY = 'PAYMENT_KEY'; // Замените на настоящий ключ
+        let currentUser = null;
+
+        // Элементы DOM
+        const globalLoader = document.getElementById('globalLoader');
+        const paymentForm = document.getElementById('paymentForm');
+        const resultDiv = document.getElementById('paymentResult');
+        
+        const token = localStorage.getItem('access_token');
+        const access_token = JSON.parse(token).access_token
+
+        // Функции для работы с API
+        async function makeAuthRequest(url, options = {}) {
+            try {
+                // Добавляем токен в заголовки
+                const authHeaders = {
+                    'Authorization': `Bearer ${access_token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                };
+
+                // Выполняем запрос
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        ...authHeaders,
+                        ...options.headers // Позволяет переопределить заголовки
+                    },
+                    body: options.body ? JSON.stringify(options.body) : null
+                });
+                
+
+                // Обработка 401 Unauthorized
+                if (response.status === 401) {
+                    redirectToLogin();
+                    return null;
+                }
+
+                // Проверка на другие ошибки
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Парсим JSON только если есть тело ответа
+                return response.status !== 204 ? await response.json() : null;
+                
+            } catch (error) {
+                console.error('Request failed:', error);
+                
+                // Перенаправляем при проблемах с авторизацией
+                if (error.message.includes('401') || error instanceof TypeError) {
+                    redirectToLogin();
+                }
+                
+                throw error; // Пробрасываем ошибку для дальнейшей обработки
+            }
+        }
+
+        // Получение данных пользователя
+        async function loadUserInfo() {
+            try {
+                const user = await makeAuthRequest(`${API_BASE_URL}/users/info`, 
+                    {method: "GET"}
+                );
+                currentUser = user;
+            } catch (error) {
+                showError('Ошибка загрузки данных пользователя');
+                throw error;
+            }
+        }
+
+        // Генерация случайного transaction_id
+        function generateTransactionId() {
+            return Array.from(crypto.getRandomValues(new Uint8Array(32)))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        }
+
+        // Хеширование строки
+        async function hashString(str) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(str);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Показать/скрыть лоадер
+        function toggleGlobalLoader(show) {
+            globalLoader.style.display = show ? 'flex' : 'none';
+        }
+
+        // Перенаправление на логин
+        function redirectToLogin() {
+            localStorage.removeItem('access_token');
+            window.location.href = 'login.html';
+        }
+
+        // Показать ошибку
+        function showError(message) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    ${message}
+                    <button class="btn btn-sm btn-link float-end" onclick="location.reload()">Обновить</button>
+                </div>
+            `;
+        }
+
+        // Инициализация страницы
+        async function initPage() {
+            toggleGlobalLoader(true);
+            try {
+                await loadUserInfo();
+                paymentForm.style.display = 'block';
+            } catch (error) {
+                showError('Не удалось загрузить данные пользователя');
+            } finally {
+                toggleGlobalLoader(false);
+            }
+        }
+
+        // Обработка отправки формы
+        paymentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitText');
+            const spinner = document.getElementById('spinner');
+            
+            submitBtn.classList.add('d-none');
+            spinner.classList.remove('d-none');
+            resultDiv.innerHTML = '';
+            
+            const accounts = await makeAuthRequest(`${API_BASE_URL}/users/accounts`, {
+                'method': 'GET'
+            });
+            if (accounts.length) {
+                account_id = accounts[0].id
+            }
+            else {
+                account_id = null
+            };
+
+            try {
+                if (!currentUser) throw new Error('Данные пользователя не загружены');
+
+                const paymentData = {
+                    user_id: currentUser.id,
+                    amount: parseFloat(document.getElementById('amount').value),
+                    transaction_id: generateTransactionId(),
+                    account_id: account_id
+                };
+
+                const concatString = `${paymentData.account_id}${paymentData.amount}${paymentData.transaction_id}${paymentData.user_id}${PAYMENT_KEY}`;
+                const signature = await hashString(concatString);
+                const response = await makeAuthRequest(`${API_BASE_URL}/webhook/payment`, {
+                    method: 'POST',
+                    body: {
+                        ...paymentData,
+                        signature: signature
+                    }
+                });
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <h5>Платеж успешно проведен!</h5>
+                        <ul class="mb-0">
+                            <li>ID пользователя: ${currentUser.id}</li>
+                            <li>Счет: ${response.account_id}</li>
+                            <li>Сумма: ${response.amount}</li>
+                            <li>ID-транзакции(платежной системы): ${response.transaction_id}</li>
+                        </ul>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Ошибка:', error);
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        ${error.message || 'Ошибка при выполнении платежа'}
+                    </div>
+                `;
+            } finally {
+                submitBtn.classList.remove('d-none');
+                spinner.classList.add('d-none');
+            }
+        });
+
+        // Запуск инициализации
+        initPage();
+    </script>
+</body>
+</html>

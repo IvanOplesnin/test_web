@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<script>
+    const key = localStorage.getItem('access_token')
+    if (key) {
+        window.location.href = 'profile.html'
+        }
+    else {
+        window.location.href = 'login.html'
+        }
+</script>
