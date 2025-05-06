@@ -4,3 +4,4 @@
 /frontend_test_web
 /postgres_settings
 .env
+compose.yaml
